@@ -1,0 +1,17 @@
+# Compiled binaries / executables
+spaceinvader
+*.out
+*.o
+*.exe    # in case someone compiles on Windows
+
+# Debug / temporary files
+*.log
+*.tmp
+*.obj
+
+# OS / Editor files
+.DS_Store
+*.swp
+*.swo
+*.idea/
+.vscode/
