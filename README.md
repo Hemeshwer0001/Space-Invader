@@ -1,26 +1,25 @@
 # Space Invader (C++ & SFML)
 
-A simple **Space Invader** game built using **C++ and SFML**. This project demonstrates **collision detection, paddle/ship movement, scoring, and resource handling** for a retro-style arcade game.
+A simple **Space Invader** game built using **C++ and SFML**. This project demonstrates **collision detection, Space Ship movement, scoring(along with HighScore), and resource handling** for a retro-style arcade game. It utilizes **File Handling** to keep track of **HighScore**
 
 ---
 
 ## Features
 
-- **Player-controlled spaceship**
-  - Move left/right using **A/D keys** (or arrow keys)
-  - Fire missiles to destroy enemies
+- **Player-controlled spaceship and missile**
+  - Move left/right using **Arrow Keys**
+  - Fire missiles to destroy enemies using **Space Bar**
 
 - **Enemies/aliens**
   - Multiple enemy sprites moving across the screen
   - Collision detection with missiles
 
 - **Scoring system**
-  - Tracks player score in real-time
+  - Tracks player score in **real-time**
   - High score saved in `HighScore.txt`
 
 - **Assets**
-  - Includes images, sound effects, and fonts
-  - Smooth animations and sound effects for shooting and explosions
+  - Includes **images**,  **fonts** and **sound effects** for **shooting and explosions**
 
 - **Cross-platform**
   - Runs on Linux (and other platforms with SFML)
@@ -31,10 +30,9 @@ A simple **Space Invader** game built using **C++ and SFML**. This project demon
 
 | Action            | Key             |
 |------------------|----------------|
-| Move Left         | A or Left Arrow|
-| Move Right        | D or Right Arrow|
+| Move Left         | Left Arrow|
+| Move Right        | Right Arrow|
 | Shoot Missile     | Spacebar       |
-| Quit Game         | Esc            |
 
 ---
 
