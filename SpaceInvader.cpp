@@ -253,7 +253,7 @@ int main(){
         controlMissileStates(missiles, missileY_change, aliens, alien, MissileCollision, spaceShip, deltaTime, score);
     
         if(Over == true){
-            // state = "rest"; // forcefully bring the missile at rest
+            // state = "rest"; // forcefully bring the missile at rest... no need for this statement here as i have made changes in gameOver()
             gameOver(GameOver, missiles);
         }
 
