@@ -6,6 +6,11 @@
 #include <SFML/Audio.hpp>
 using namespace std;
 
+struct Missiles{
+    sf::Sprite setSprite;
+    string state = "rest"; // initially at rest
+};
+
 void moveShip(sf::Sprite& ship, float moveX, float deltaTime, bool Over){
     // here we will make click listener for the spaceship
     if(sf::Keyboard::isKeyPressed(sf::Keyboard::Left) && Over == false){
@@ -47,6 +52,7 @@ void displayAliens(vector<sf::Sprite>& aliens, sf::RenderWindow& window){
 void moveAliens(vector<sf::Sprite>& aliens, vector<sf::Vector2f>& AlienMovement, float deltaTime, bool& over){
     // moving aliens
     for(int i = 0; i<aliens.size(); i++){
+        if(i%2 == 1) AlienMovement[i].y = 0;
         aliens[i].move(AlienMovement[i]*deltaTime);
     }
 
@@ -64,9 +70,16 @@ void moveAliens(vector<sf::Sprite>& aliens, vector<sf::Vector2f>& AlienMovement,
             over = true;
             for(int i = 0; i<aliens.size(); i++){
                 AlienMovement[i].x = 0;
+                AlienMovement[i].y = 0;
             }
             break;
         }
+    }
+}
+
+void displayMissiles(vector<Missiles>& missiles, sf::RenderWindow& window){
+    for(int i = 0; i<missiles.size(); i++){
+        window.draw(missiles[i].setSprite);
     }
 }
 
@@ -83,7 +96,38 @@ bool AlienMissileCollision(sf::Sprite& missile, vector<sf::Sprite>& aliens, stri
     return false; // if the loop termiates normally.. no collision
 }
 
-void gameOver(sf::Text& GameOver){
+bool canLaunch(vector<Missiles>& missiles){
+    for(int i = 0; i<missiles.size(); i++){
+        if(missiles[i].state == "rest"){
+            missiles[i].state = "fire"; // launch the missile
+            return true; // we can launch a missile
+        }
+    }
+    return false;
+}
+
+void controlMissileStates(vector<Missiles>& missiles, float& missileY_change, vector<sf::Sprite>& aliens, sf:: Sprite& alien, sf::Sound& MissileCollision, sf::Sprite& spaceShip, float& deltaTime, int& score){
+    for(int i = 0; i<missiles.size(); i++){
+        if(missiles[i].state == "rest") missiles[i].setSprite.setPosition(spaceShip.getPosition().x+20, spaceShip.getPosition().y+20);
+        else{ // the missile is launched
+            missiles[i].setSprite.move(0, missileY_change*deltaTime);
+            if(missiles[i].setSprite.getPosition().y <= 0){
+                missiles[i].state= "rest";
+            }
+            else if(AlienMissileCollision(missiles[i].setSprite, aliens, missiles[i].state, MissileCollision)){
+                // our missile did hit an alien.
+                int needAlien = 1; // we removed one alien.. so, we will bring it back
+                loadAliens(aliens, alien, needAlien); // it will bring back the ailens that we killed
+                score++;
+            }
+        }
+    }
+}
+
+void gameOver(sf::Text& GameOver, vector<Missiles>& missiles){
+    for(int i = 0; i<missiles.size(); i++){
+        missiles[i].state = "rest";
+    }
     GameOver.setCharacterSize(60);
     GameOver.setFillColor(sf::Color::Magenta);
     GameOver.Bold;
@@ -107,6 +151,7 @@ int main(){
 
     // creating a window 
     sf::RenderWindow window(sf::VideoMode({800, 600}), "Space Invader");
+    window.setKeyRepeatEnabled(false);
     sf::Clock clock;
     bool Over = false;
 
@@ -164,21 +209,25 @@ int main(){
     alienTexture.loadFromFile("plunderReaper.png");
     sf::Sprite alien;
     alien.setTexture(alienTexture);
-    vector<sf::Sprite> aliens;
+    vector<sf::Sprite> aliens; // will store aliens in a vector
     int totalAliens = 6;
-    vector<sf::Vector2f> AlienMovement;
+    vector<sf::Vector2f> AlienMovement; // will take note of each aliens movement.
 
     // time to throw bombs (missile)
+    int totalMissiles = 2;
     sf::Texture missileTexture;
     missileTexture.loadFromFile("missile00.png");
-    sf::Sprite missile;
-    missile.setTexture(missileTexture);
-    string state = "rest"; // initially the missile is at rest
+    sf::Sprite Missile;
+    Missile.setTexture(missileTexture);
+    Missiles missile; // one missile.. will be pushed in missilesy
+    missile.setSprite = Missile;
+    // loading all the missiles
+    vector<Missiles> missiles(totalMissiles, missile); // will store all missiles
     float missileY_change = -600.0;
     
 
     for(int i = 0; i<totalAliens; i++){ // setting movements for all aliens
-        AlienMovement.push_back({700.0, 0});
+        AlienMovement.push_back({700.0, 75.0});
     }
     loadAliens(aliens, alien, totalAliens); // loading aliens
 
@@ -191,32 +240,21 @@ int main(){
             if(event.type == sf::Event::Closed){
                 window.close();
             }
-        }
-
-        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && state == "rest" && Over == false){ // the missile can be launched only when it is at rest
-            state = "fire"; // missile is launched
-            missileLaunch.play();
+            else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Space && Over == false){
+                if(canLaunch(missiles)){
+                    missileLaunch.play();
+                }
+            }
         }
 
         moveShip(spaceShip, moveShipX, deltaTime, Over); // it will handle ship movements and bounds
         moveAliens(aliens, AlienMovement, deltaTime, Over);
 
-        if(state == "rest") missile.setPosition(spaceShip.getPosition().x+20, spaceShip.getPosition().y+20);
-        else{ // the missile is launched
-            missile.move(0, missileY_change*deltaTime);
-            if(missile.getPosition().y <= 0){
-                state = "rest";
-            }
-            else if(AlienMissileCollision(missile, aliens, state, MissileCollision)){
-                // our missile did hit an alien.
-                int needAlien = 1; // we removed one alien.. so, we will bring it back
-                loadAliens(aliens, alien, needAlien); // it will bring back the ailens that we killed
-                score++;
-            }
-        }
+        controlMissileStates(missiles, missileY_change, aliens, alien, MissileCollision, spaceShip, deltaTime, score);
+    
         if(Over == true){
-            state = "rest"; // forcefully bring the missile at rest
-            gameOver(GameOver);
+            // state = "rest"; // forcefully bring the missile at rest
+            gameOver(GameOver, missiles);
         }
 
         if(score > highSco) highSco = score;
@@ -226,7 +264,7 @@ int main(){
 
         window.clear(sf::Color::Black);
         window.draw(backGround);
-        window.draw(missile);
+        displayMissiles(missiles, window);
         window.draw(spaceShip);
         displayAliens(aliens, window);
         window.draw(GameOver);
