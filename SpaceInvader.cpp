@@ -49,6 +49,12 @@ void displayAliens(vector<sf::Sprite>& aliens, sf::RenderWindow& window){
     }
 }
 
+void setMovement(vector<sf::Sprite>& aliens, vector<sf::Vector2f>& AlienMovement, int& totalAliens){
+    for(int i = 0; i<totalAliens; i++){ // setting movements for all aliens
+        AlienMovement.push_back({700.0, 75.0});
+    }
+}
+
 void moveAliens(vector<sf::Sprite>& aliens, vector<sf::Vector2f>& AlienMovement, float deltaTime, bool& over){
     // moving aliens
     for(int i = 0; i<aliens.size(); i++){
@@ -66,7 +72,7 @@ void moveAliens(vector<sf::Sprite>& aliens, vector<sf::Vector2f>& AlienMovement,
             aliens[i].setPosition(0, aliens[i].getPosition().y+40);
             AlienMovement[i].x *= -1;
         }
-        else if(aliens[i].getPosition().y+64 >= 560){
+        else if(aliens[i].getPosition().y+64 >= 566){
             over = true;
             for(int i = 0; i<aliens.size(); i++){
                 AlienMovement[i].x = 0;
@@ -111,7 +117,7 @@ void controlMissileStates(vector<Missiles>& missiles, float& missileY_change, ve
         if(missiles[i].state == "rest") missiles[i].setSprite.setPosition(spaceShip.getPosition().x+20, spaceShip.getPosition().y+20);
         else{ // the missile is launched
             missiles[i].setSprite.move(0, missileY_change*deltaTime);
-            if(missiles[i].setSprite.getPosition().y <= 0){
+            if(missiles[i].setSprite.getPosition().y <= 0){ // moves out of window.. bring to rest
                 missiles[i].state= "rest";
             }
             else if(AlienMissileCollision(missiles[i].setSprite, aliens, missiles[i].state, MissileCollision, musicPreference)){
@@ -162,7 +168,7 @@ int main(){
     GameOver.setFont(font);
 
     string onWhichScreen = "Menu"; // initially we will be in the menu screen
-    // Different screens in this game will be : Menu ... Game
+    // Different screens in this game will be : Menu ... Preference ... Game
 
     // BELOW: FOR MENU SCREEN
     // we will create 2 button for now... 1) Start Game... 2) Music On or Off
@@ -193,7 +199,121 @@ int main(){
     musicOption.setFillColor(sf::Color::Green); // initially green for music On.
     musicOption.setPosition(sf::Vector2f({270, 240}));
     musicOption.setString("Music (On)");
-    
+
+    // creating a preference button
+    sf::RectangleShape preferencesBox;
+    preferencesBox.setOutlineColor(sf::Color::Red);
+    preferencesBox.setOutlineThickness(5);
+    preferencesBox.setPosition(sf::Vector2f(250, 330));
+    preferencesBox.setSize(sf::Vector2f(300, 60));
+
+    sf::Text PreferenceText;
+    PreferenceText.setFont(font);
+    PreferenceText.setCharacterSize(48);
+    PreferenceText.setFillColor(sf::Color::Green);
+    PreferenceText.setPosition(sf::Vector2f(270, 330));
+    PreferenceText.setString("Preference");
+
+    // Below For Our Preference Screen
+    // in this screen we will allow user to choose the number of invaders and number of missiles he can fire
+
+    // button for Number of invaders
+    sf::RectangleShape invaderChoice;
+    invaderChoice.setOutlineThickness(5);
+    invaderChoice.setOutlineColor(sf::Color::Red);
+    invaderChoice.setPosition(70, 50);
+    invaderChoice.setSize(sf::Vector2f(350, 50));
+
+    sf::Text invaderText;
+    invaderText.setFont(font);
+    invaderText.setFillColor(sf::Color::Magenta);
+    invaderText.setCharacterSize(38);
+    invaderText.setPosition(90, 50);
+    // setstring will be done later in the code
+
+    // box to increase invader count
+    sf::RectangleShape increaseCount; 
+    increaseCount.setOutlineThickness(5);
+    increaseCount.setOutlineColor(sf::Color::Green);
+    increaseCount.setPosition(450, 50);
+    increaseCount.setSize(sf::Vector2f(50, 50));
+
+    sf::Text increaseText;
+    increaseText.setFont(font);
+    increaseText.setCharacterSize(40);
+    increaseText.setPosition(465, 50);
+    increaseText.setFillColor(sf::Color::Blue);
+    increaseText.setString("+");
+
+    // box to decrease invader count
+    sf::RectangleShape decreaseCount; 
+    decreaseCount.setOutlineThickness(5);
+    decreaseCount.setOutlineColor(sf::Color::Green);
+    decreaseCount.setPosition(530, 50);
+    decreaseCount.setSize(sf::Vector2f(50, 50));
+
+    sf::Text decreaseText;
+    decreaseText.setFont(font);
+    decreaseText.setCharacterSize(40);
+    decreaseText.setPosition(545, 50);
+    decreaseText.setFillColor(sf::Color::Blue);
+    decreaseText.setString("-");
+
+    // now, option to increase the number of missiles one can fire
+    sf::RectangleShape missileCountBox;
+    missileCountBox.setOutlineThickness(5);
+    missileCountBox.setOutlineColor(sf::Color::Red);
+    missileCountBox.setPosition(70, 140);
+    missileCountBox.setSize(sf::Vector2f(350, 50));
+
+    sf::Text missileCountText;
+    missileCountText.setFont(font);
+    missileCountText.setCharacterSize(38);
+    missileCountText.setPosition(105, 140);
+    missileCountText.setFillColor(sf::Color::Magenta);
+    // set text for it will be give later in the code
+
+    // box to increase invader count
+    sf::RectangleShape increaseMissiles; 
+    increaseMissiles.setOutlineThickness(5);
+    increaseMissiles.setOutlineColor(sf::Color::Green);
+    increaseMissiles.setPosition(450, 140);
+    increaseMissiles.setSize(sf::Vector2f(50, 50));
+
+    sf::Text increaseMissileText;
+    increaseMissileText.setFont(font);
+    increaseMissileText.setCharacterSize(40);
+    increaseMissileText.setPosition(465, 140);
+    increaseMissileText.setFillColor(sf::Color::Blue);
+    increaseMissileText.setString("+");
+
+    // box to decrease invader count
+    sf::RectangleShape decreaseMissiles; 
+    decreaseMissiles.setOutlineThickness(5);
+    decreaseMissiles.setOutlineColor(sf::Color::Green);
+    decreaseMissiles.setPosition(530, 140);
+    decreaseMissiles.setSize(sf::Vector2f(50, 50));
+
+    sf::Text decreaseMissilesText;
+    decreaseMissilesText.setFont(font);
+    decreaseMissilesText.setCharacterSize(40);
+    decreaseMissilesText.setPosition(545, 140);
+    decreaseMissilesText.setFillColor(sf::Color::Blue);
+    decreaseMissilesText.setString("-");
+
+    // creating a back button to move to Menu screen form Preference
+    sf::RectangleShape backButton;
+    backButton.setOutlineColor(sf::Color::Red);
+    backButton.setOutlineThickness(5);
+    backButton.setPosition(500, 400);
+    backButton.setSize(sf::Vector2f(200, 50));
+
+    sf::Text back;
+    back.setFont(font);
+    back.setCharacterSize(40);
+    back.setFillColor(sf::Color::Magenta);
+    back.setPosition(550, 400);
+    back.setString("Back");
 
     // Below: FOR GAME SCREEN
     // creating sound for Missile Launch
@@ -248,10 +368,14 @@ int main(){
     alien.setTexture(alienTexture);
     vector<sf::Sprite> aliens; // will store aliens in a vector
     int totalAliens = 6;
+    int minAliens = 1;
+    int maxAliens = 20;
     vector<sf::Vector2f> AlienMovement; // will take note of each aliens movement.
 
     // time to throw bombs (missile)
-    int totalMissiles = 6;
+    int totalMissiles = 2;
+    int minMissiles = 1;
+    int maxMissiles = 7;
     sf::Texture missileTexture;
     missileTexture.loadFromFile("missile00.png");
     sf::Sprite Missile;
@@ -261,16 +385,16 @@ int main(){
     // loading all the missiles
     vector<Missiles> missiles(totalMissiles, missile); // will store all missiles
     float missileY_change = -600.0;
-    
 
-    for(int i = 0; i<totalAliens; i++){ // setting movements for all aliens
-        AlienMovement.push_back({700.0, 75.0});
-    }
+    // setting movement for all aliens
+    setMovement(aliens, AlienMovement, totalAliens);
     loadAliens(aliens, alien, totalAliens); // loading aliens
 
     // gameloop
     while(window.isOpen()){
         float deltaTime = clock.restart().asSeconds();
+        invaderText.setString("Invader Count "+to_string(totalAliens));
+        missileCountText.setString("Missile Count "+to_string(totalMissiles));
 
         sf::Event event;
         while(window.pollEvent(event)){
@@ -285,7 +409,7 @@ int main(){
             else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::G && onWhichScreen == "Menu"){
                 onWhichScreen = "Game"; // move to game screen 
             }
-            else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::M && onWhichScreen == "Game"){
+            else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::M && (onWhichScreen == "Game" || onWhichScreen == "Preference")){
                 onWhichScreen = "Menu";
             }
             else if(onWhichScreen == "Menu" && event.type == sf::Event::MouseButtonPressed){
@@ -296,6 +420,44 @@ int main(){
                     else if(onWhichScreen == "Menu" && (sf::Mouse::getPosition(window).x > musicOnOff.getPosition().x) && (sf::Mouse::getPosition(window).x < musicOnOff.getPosition().x + musicOnOff.getSize().x) && (sf::Mouse::getPosition(window).y > musicOnOff.getPosition().y) && (sf::Mouse::getPosition(window).y < musicOnOff.getPosition().y + musicOnOff.getSize().y)){
                         (musicPreference == "On")? musicPreference = "Off" : musicPreference = "On";
                         musicOption.setString("Music ("+musicPreference+")");
+                    }
+                    else if(onWhichScreen == "Menu" && (sf::Mouse::getPosition(window).x > preferencesBox.getPosition().x) && (sf::Mouse::getPosition(window).x < preferencesBox.getPosition().x + preferencesBox.getSize().x) && (sf::Mouse::getPosition(window).y > preferencesBox.getPosition().y) && (sf::Mouse::getPosition(window).y < preferencesBox.getPosition().y + preferencesBox.getSize().y)){
+                        onWhichScreen = "Preference";
+                    }
+                }
+            }
+            else if(onWhichScreen == "Preference" && event.type == sf::Event::MouseButtonPressed && Over == false){
+                if(event.mouseButton.button == sf::Mouse::Left){
+                    if(totalAliens < maxAliens && (sf::Mouse::getPosition(window).x > increaseCount.getPosition().x) && (sf::Mouse::getPosition(window).x < increaseCount.getPosition().x + increaseCount.getSize().x) && (sf::Mouse::getPosition(window).y > increaseCount.getPosition().y) && (sf::Mouse::getPosition(window).y < increaseCount.getPosition().y + increaseCount.getSize().y)){
+                        totalAliens += 1;
+                        int needMore = 1;
+                        loadAliens(aliens, alien, needMore);
+                        setMovement(aliens, AlienMovement, needMore);
+                        decreaseCount.setOutlineColor(sf::Color::Green);
+                        if(totalAliens == maxAliens) increaseCount.setOutlineColor(sf::Color::Red);
+                        
+                    }
+                    else if(totalAliens > minAliens && (sf::Mouse::getPosition(window).x > decreaseCount.getPosition().x) && (sf::Mouse::getPosition(window).x < decreaseCount.getPosition().x + decreaseCount.getSize().x) && (sf::Mouse::getPosition(window).y > decreaseCount.getPosition().y) && (sf::Mouse::getPosition(window).y < decreaseCount.getPosition().y + decreaseCount.getSize().y)){
+                        totalAliens--;
+                        aliens.pop_back(); // as it will remove the last added alien
+                        AlienMovement.pop_back(); // removing movement for the last added alien
+                        increaseCount.setOutlineColor(sf::Color::Green);
+                        if(totalAliens == minAliens) decreaseCount.setOutlineColor(sf::Color::Red);
+                    }
+                    else if(totalMissiles < maxMissiles && (sf::Mouse::getPosition(window).x > increaseMissiles.getPosition().x) && (sf::Mouse::getPosition(window).x < increaseMissiles.getPosition().x + increaseMissiles.getSize().x) && (sf::Mouse::getPosition(window).y > increaseMissiles.getPosition().y) && (sf::Mouse::getPosition(window).y < increaseMissiles.getPosition().y + increaseMissiles.getSize().y)){
+                        totalMissiles++;
+                        missiles.push_back(missile); // we add another missile
+                        decreaseMissiles.setOutlineColor(sf::Color::Green); // decrease option enabled
+                        if(totalMissiles == 7) increaseMissiles.setOutlineColor(sf::Color::Red); // increase option disabled
+                    }
+                    else if(totalMissiles > minMissiles && (sf::Mouse::getPosition(window).x > decreaseMissiles.getPosition().x) && (sf::Mouse::getPosition(window).x < decreaseMissiles.getPosition().x + decreaseMissiles.getSize().x) && (sf::Mouse::getPosition(window).y > decreaseMissiles.getPosition().y) && (sf::Mouse::getPosition(window).y < decreaseMissiles.getPosition().y + decreaseMissiles.getSize().y)){
+                        totalMissiles--;
+                        missiles.pop_back(); // remove the last added missile
+                        increaseMissiles.setOutlineColor(sf::Color::Green); // enable increase button
+                        if(totalMissiles == minMissiles) decreaseMissiles.setOutlineColor(sf::Color::Red); // disable decrease button
+                    }
+                    else if((sf::Mouse::getPosition(window).x > backButton.getPosition().x) && (sf::Mouse::getPosition(window).x < backButton.getPosition().x + backButton.getSize().x) && (sf::Mouse::getPosition(window).y > backButton.getPosition().y) && (sf::Mouse::getPosition(window).y < backButton.getPosition().y + backButton.getSize().y)){
+                        onWhichScreen = "Menu";
                     }
                 }
             }
@@ -331,6 +493,24 @@ int main(){
             window.draw(startGameText);
             window.draw(musicOnOff);
             window.draw(musicOption);
+            window.draw(preferencesBox);
+            window.draw(PreferenceText);
+        }
+        else if(onWhichScreen == "Preference"){
+            window.draw(invaderChoice);
+            window.draw(invaderText);
+            window.draw(increaseCount);
+            window.draw(increaseText);
+            window.draw(decreaseCount);
+            window.draw(decreaseText);
+            window.draw(missileCountBox);
+            window.draw(missileCountText);
+            window.draw(increaseMissiles);
+            window.draw(increaseMissileText);
+            window.draw(decreaseMissiles);
+            window.draw(decreaseMissilesText);
+            window.draw(backButton);
+            window.draw(back);
         }
         window.display();
     }
