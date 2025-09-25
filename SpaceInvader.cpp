@@ -83,10 +83,10 @@ void displayMissiles(vector<Missiles>& missiles, sf::RenderWindow& window){
     }
 }
 
-bool AlienMissileCollision(sf::Sprite& missile, vector<sf::Sprite>& aliens, string& state, sf::Sound& missileCollision){ // it wil tell us if the missile has collided with any alien
+bool AlienMissileCollision(sf::Sprite& missile, vector<sf::Sprite>& aliens, string& state, sf::Sound& missileCollision, string& musicPreference){ // it wil tell us if the missile has collided with any alien
     for(int i = 0; i<aliens.size(); i++){
         if(missile.getGlobalBounds().intersects(aliens[i].getGlobalBounds())){
-            missileCollision.play();
+            if(musicPreference == "On") missileCollision.play();
             missile.setPosition(-100, -100); // taking misslie off window to avoid hitting to another alien because of high framerate
             state = "rest";
             aliens.erase(aliens.begin()+i); // it will remove the exact alien that we hit with our missile
@@ -106,7 +106,7 @@ bool canLaunch(vector<Missiles>& missiles){
     return false;
 }
 
-void controlMissileStates(vector<Missiles>& missiles, float& missileY_change, vector<sf::Sprite>& aliens, sf:: Sprite& alien, sf::Sound& MissileCollision, sf::Sprite& spaceShip, float& deltaTime, int& score){
+void controlMissileStates(vector<Missiles>& missiles, float& missileY_change, vector<sf::Sprite>& aliens, sf:: Sprite& alien, sf::Sound& MissileCollision, sf::Sprite& spaceShip, float& deltaTime, int& score, string& musicPreference){
     for(int i = 0; i<missiles.size(); i++){
         if(missiles[i].state == "rest") missiles[i].setSprite.setPosition(spaceShip.getPosition().x+20, spaceShip.getPosition().y+20);
         else{ // the missile is launched
@@ -114,7 +114,7 @@ void controlMissileStates(vector<Missiles>& missiles, float& missileY_change, ve
             if(missiles[i].setSprite.getPosition().y <= 0){
                 missiles[i].state= "rest";
             }
-            else if(AlienMissileCollision(missiles[i].setSprite, aliens, missiles[i].state, MissileCollision)){
+            else if(AlienMissileCollision(missiles[i].setSprite, aliens, missiles[i].state, MissileCollision, musicPreference)){
                 // our missile did hit an alien.
                 int needAlien = 1; // we removed one alien.. so, we will bring it back
                 loadAliens(aliens, alien, needAlien); // it will bring back the ailens that we killed
@@ -155,6 +155,47 @@ int main(){
     sf::Clock clock;
     bool Over = false;
 
+    // creating a font
+    sf::Font font;
+    font.loadFromFile("FreeRoyalty.ttf");
+    sf::Text GameOver;
+    GameOver.setFont(font);
+
+    string onWhichScreen = "Menu"; // initially we will be in the menu screen
+    // Different screens in this game will be : Menu ... Game
+
+    // BELOW: FOR MENU SCREEN
+    // we will create 2 button for now... 1) Start Game... 2) Music On or Off
+    sf::RectangleShape startGame;
+    startGame.setPosition(250, 150);
+    startGame.setOutlineThickness(5);
+    startGame.setOutlineColor(sf::Color::Red);
+    startGame.setSize(sf::Vector2f(300, 60));
+
+    sf::Text startGameText;
+    startGameText.setFont(font);
+    startGameText.setPosition(270, 150);
+    startGameText.setCharacterSize(50);
+    startGameText.setString("StartGame");
+    startGameText.setFillColor(sf::Color::Green);
+
+    // Button for Music Choice
+    sf::RectangleShape musicOnOff;
+    musicOnOff.setOutlineThickness(5);
+    musicOnOff.setOutlineColor(sf::Color::Red);
+    musicOnOff.setPosition(sf::Vector2f({250, 240}));
+    musicOnOff.setSize(sf::Vector2f({300, 60}));
+
+    sf::Text musicOption;
+    string musicPreference = "On"; // yes for music on and no for music off
+    musicOption.setFont(font);
+    musicOption.setCharacterSize(50);
+    musicOption.setFillColor(sf::Color::Green); // initially green for music On.
+    musicOption.setPosition(sf::Vector2f({270, 240}));
+    musicOption.setString("Music (On)");
+    
+
+    // Below: FOR GAME SCREEN
     // creating sound for Missile Launch
     sf::SoundBuffer missileBuffer;
     missileBuffer.loadFromFile("missile.wav");
@@ -167,11 +208,7 @@ int main(){
     sf::Sound MissileCollision;
     MissileCollision.setBuffer(collisionBuffer);
 
-    // creating a font
-    sf::Font font;
-    font.loadFromFile("FreeRoyalty.ttf");
-    sf::Text GameOver;
-    GameOver.setFont(font);
+    
 
     // score 
     int score = 0;
@@ -214,7 +251,7 @@ int main(){
     vector<sf::Vector2f> AlienMovement; // will take note of each aliens movement.
 
     // time to throw bombs (missile)
-    int totalMissiles = 2;
+    int totalMissiles = 6;
     sf::Texture missileTexture;
     missileTexture.loadFromFile("missile00.png");
     sf::Sprite Missile;
@@ -240,17 +277,34 @@ int main(){
             if(event.type == sf::Event::Closed){
                 window.close();
             }
-            else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Space && Over == false){
+            else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Space && Over == false && onWhichScreen == "Game"){
                 if(canLaunch(missiles)){
-                    missileLaunch.play();
+                    if(musicPreference == "On") missileLaunch.play();
+                }
+            }
+            else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::G && onWhichScreen == "Menu"){
+                onWhichScreen = "Game"; // move to game screen 
+            }
+            else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::M && onWhichScreen == "Game"){
+                onWhichScreen = "Menu";
+            }
+            else if(onWhichScreen == "Menu" && event.type == sf::Event::MouseButtonPressed){
+                if(event.mouseButton.button == sf::Mouse::Left){
+                    if((sf::Mouse::getPosition(window).x > startGame.getPosition().x) && (sf::Mouse::getPosition(window).x < startGame.getPosition().x + startGame.getSize().x) && (sf::Mouse::getPosition(window).y > startGame.getPosition().y) && (sf::Mouse::getPosition(window).y < startGame.getPosition().y + startGame.getSize().y)){
+                        onWhichScreen = "Game";
+                    }
+                    else if(onWhichScreen == "Menu" && (sf::Mouse::getPosition(window).x > musicOnOff.getPosition().x) && (sf::Mouse::getPosition(window).x < musicOnOff.getPosition().x + musicOnOff.getSize().x) && (sf::Mouse::getPosition(window).y > musicOnOff.getPosition().y) && (sf::Mouse::getPosition(window).y < musicOnOff.getPosition().y + musicOnOff.getSize().y)){
+                        (musicPreference == "On")? musicPreference = "Off" : musicPreference = "On";
+                        musicOption.setString("Music ("+musicPreference+")");
+                    }
                 }
             }
         }
 
-        moveShip(spaceShip, moveShipX, deltaTime, Over); // it will handle ship movements and bounds
-        moveAliens(aliens, AlienMovement, deltaTime, Over);
+        if(onWhichScreen == "Game") moveShip(spaceShip, moveShipX, deltaTime, Over); // it will handle ship movements and bounds
+        if(onWhichScreen == "Game") moveAliens(aliens, AlienMovement, deltaTime, Over);
 
-        controlMissileStates(missiles, missileY_change, aliens, alien, MissileCollision, spaceShip, deltaTime, score);
+        if(onWhichScreen == "Game") controlMissileStates(missiles, missileY_change, aliens, alien, MissileCollision, spaceShip, deltaTime, score, musicPreference);
     
         if(Over == true){
             // state = "rest"; // forcefully bring the missile at rest... no need for this statement here as i have made changes in gameOver()
@@ -263,13 +317,21 @@ int main(){
         HighScore.setString("High Score : "+to_string(highSco));
 
         window.clear(sf::Color::Black);
-        window.draw(backGround);
-        displayMissiles(missiles, window);
-        window.draw(spaceShip);
-        displayAliens(aliens, window);
-        window.draw(GameOver);
-        window.draw(Score);
-        window.draw(HighScore);
+        if(onWhichScreen == "Game"){
+            window.draw(backGround);
+            displayMissiles(missiles, window);
+            window.draw(spaceShip);
+            displayAliens(aliens, window);
+            window.draw(GameOver);
+            window.draw(Score);
+            window.draw(HighScore);
+        }
+        else if(onWhichScreen == "Menu"){
+            window.draw(startGame);
+            window.draw(startGameText);
+            window.draw(musicOnOff);
+            window.draw(musicOption);
+        }
         window.display();
     }
     fh.close();
