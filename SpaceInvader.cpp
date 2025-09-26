@@ -434,7 +434,7 @@ int main(){
     sf::Sprite alien;
     alien.setTexture(alienTexture);
     vector<sf::Sprite> aliens; // will store aliens in a vector
-    int totalAliens = 0;
+    int totalAliens = 6;
     int minAliens = 1;
     int maxAliens = 20;
     vector<sf::Vector2f> AlienMovement; // will take note of each aliens movement.
