@@ -89,14 +89,21 @@ void displayMissiles(vector<Missiles>& missiles, sf::RenderWindow& window){
     }
 }
 
-bool AlienMissileCollision(sf::Sprite& missile, vector<sf::Sprite>& aliens, string& state, sf::Sound& missileCollision, string& musicPreference){ // it wil tell us if the missile has collided with any alien
+bool AlienMissileCollision(sf::Sprite& missile, vector<sf::Sprite>& aliens, string& state, vector<int>& Hp, sf::Sound& missileCollision, string& musicPreference){ // it wil tell us if the missile has collided with any alien
     for(int i = 0; i<aliens.size(); i++){
         if(missile.getGlobalBounds().intersects(aliens[i].getGlobalBounds())){
-            if(musicPreference == "On") missileCollision.play();
+            if(musicPreference == "On"){
+                missileCollision.setVolume(30);
+                missileCollision.play();
+            }
             missile.setPosition(-100, -100); // taking misslie off window to avoid hitting to another alien because of high framerate
             state = "rest";
-            aliens.erase(aliens.begin()+i); // it will remove the exact alien that we hit with our missile
-            return true; // return true to make it known that we hit an alien
+            --Hp[i]; // alien got hit.. Hp -1
+            if(Hp[i] == 0) {
+                Hp.erase(Hp.begin()+i); // will remove the Hp of the Alien that was just killed
+                aliens.erase(aliens.begin()+i); // it will remove the exact alien that we hit with our missile
+                return true; // return true to make it known that we hit an alien
+            }
         }
     }
     return false; // if the loop termiates normally.. no collision
@@ -112,7 +119,7 @@ bool canLaunch(vector<Missiles>& missiles){
     return false;
 }
 
-void controlMissileStates(vector<Missiles>& missiles, float& missileY_change, vector<sf::Sprite>& aliens, sf:: Sprite& alien, sf::Sound& MissileCollision, sf::Sprite& spaceShip, float& deltaTime, int& score, string& musicPreference){
+void controlMissileStates(vector<Missiles>& missiles, float& missileY_change, vector<sf::Sprite>& aliens, sf:: Sprite& alien, vector<int>& Hp, int hp, sf::Sound& MissileCollision, sf::Sprite& spaceShip, float& deltaTime, int& score, string& musicPreference){
     for(int i = 0; i<missiles.size(); i++){
         if(missiles[i].state == "rest") missiles[i].setSprite.setPosition(spaceShip.getPosition().x+20, spaceShip.getPosition().y+20);
         else{ // the missile is launched
@@ -120,13 +127,20 @@ void controlMissileStates(vector<Missiles>& missiles, float& missileY_change, ve
             if(missiles[i].setSprite.getPosition().y <= 0){ // moves out of window.. bring to rest
                 missiles[i].state= "rest";
             }
-            else if(AlienMissileCollision(missiles[i].setSprite, aliens, missiles[i].state, MissileCollision, musicPreference)){
+            else if(AlienMissileCollision(missiles[i].setSprite, aliens, missiles[i].state, Hp, MissileCollision, musicPreference)){
                 // our missile did hit an alien.
                 int needAlien = 1; // we removed one alien.. so, we will bring it back
                 loadAliens(aliens, alien, needAlien); // it will bring back the ailens that we killed
+                Hp.push_back(hp); // we are getting a new alien as prev was removed... so, we need new Hp for the new alien
                 score++;
             }
         }
+    }
+}
+
+void fillHp(vector<int>& Hp, int& hp, int size){
+    for(int i = 0; i<size; i++){
+        Hp.push_back(hp);
     }
 }
 
@@ -171,7 +185,7 @@ int main(){
     // Different screens in this game will be : Menu ... Preference ... Game
 
     // BELOW: FOR MENU SCREEN
-    // we will create 2 button for now... 1) Start Game... 2) Music On or Off
+    // we will create 3 button for now... 1) Start Game... 2) Music On or Off... 3) Preference
     sf::RectangleShape startGame;
     startGame.setPosition(250, 150);
     startGame.setOutlineThickness(5);
@@ -305,17 +319,70 @@ int main(){
     sf::RectangleShape backButton;
     backButton.setOutlineColor(sf::Color::Red);
     backButton.setOutlineThickness(5);
-    backButton.setPosition(500, 400);
-    backButton.setSize(sf::Vector2f(200, 50));
+    backButton.setPosition(600, 500);
+    backButton.setSize(sf::Vector2f(140, 50));
 
     sf::Text back;
     back.setFont(font);
     back.setCharacterSize(40);
     back.setFillColor(sf::Color::Magenta);
-    back.setPosition(550, 400);
+    back.setPosition(620, 500);
     back.setString("Back");
 
+    sf::RectangleShape normalModeBox;
+    normalModeBox.setOutlineThickness(5);
+    normalModeBox.setOutlineColor(sf::Color::Green);
+    normalModeBox.setPosition(70, 230);
+    normalModeBox.setSize(sf::Vector2f(160, 50));
+
+    sf::Text normalModeText;
+    normalModeText.setFont(font);
+    normalModeText.setFillColor(sf::Color::Magenta);
+    normalModeText.setCharacterSize(40);
+    normalModeText.setPosition(78, 230);
+    normalModeText.setString("Normal");
+
+    // Button For Hard Mode
+    sf::RectangleShape hardModeButton;
+    hardModeButton.setOutlineThickness(5);
+    hardModeButton.setOutlineColor(sf::Color::Red); // Color symbolises which mode is choosed
+    hardModeButton.setPosition(270, 230);
+    hardModeButton.setSize(sf::Vector2f(120, 50));
+    
+    sf::Text hardModeText;
+    hardModeText.setFont(font);
+    hardModeText.setFillColor(sf::Color::Magenta);
+    hardModeText.setCharacterSize(40);
+    hardModeText.setPosition(280, 230);
+    hardModeText.setString("Hard");
+
+    // Button for Nightmare mode
+    sf::RectangleShape nightMareButton;
+    nightMareButton.setOutlineThickness(5);
+    nightMareButton.setOutlineColor(sf::Color::Red);
+    nightMareButton.setPosition(430, 230);
+    nightMareButton.setSize(sf::Vector2f(230, 50));
+
+    sf::Text nightmareText;
+    nightmareText.setFont(font);
+    nightmareText.setCharacterSize(40);
+    nightmareText.setFillColor(sf::Color::Magenta);
+    nightmareText.setPosition(440, 230);
+    nightmareText.setString("NightMare");
+
+    string currMode = "Normal"; // other modes are Hard... NightMare (Modes can be changed only before startGame)
+    bool gameStarted = false; // initially we are in Menu.. not StartGame
+
     // Below: FOR GAME SCREEN
+
+    // Creating Sound that plays until the game runs
+    
+    sf::Music gamePlay;
+    gamePlay.openFromFile("GamePlayAudio.wav");
+    gamePlay.setLoop(true);
+    gamePlay.setVolume(70);
+    
+
     // creating sound for Missile Launch
     sf::SoundBuffer missileBuffer;
     missileBuffer.loadFromFile("missile.wav");
@@ -367,7 +434,7 @@ int main(){
     sf::Sprite alien;
     alien.setTexture(alienTexture);
     vector<sf::Sprite> aliens; // will store aliens in a vector
-    int totalAliens = 6;
+    int totalAliens = 0;
     int minAliens = 1;
     int maxAliens = 20;
     vector<sf::Vector2f> AlienMovement; // will take note of each aliens movement.
@@ -390,11 +457,25 @@ int main(){
     setMovement(aliens, AlienMovement, totalAliens);
     loadAliens(aliens, alien, totalAliens); // loading aliens
 
+    int hp = 1; 
+    vector<int> Hp(totalAliens, hp); // initially no values
     // gameloop
     while(window.isOpen()){
+        if(onWhichScreen == "Game") gameStarted = false; // game has started.. cannot switch modes now
         float deltaTime = clock.restart().asSeconds();
         invaderText.setString("Invader Count "+to_string(totalAliens));
         missileCountText.setString("Missile Count "+to_string(totalMissiles));
+        
+        if(onWhichScreen == "Game" && Over == false && musicPreference == "On"){
+            if(gamePlay.getStatus() != sf::Music::Playing){ // music is not playing.. paused
+                gamePlay.play(); // resume...
+            }
+        }
+        else{
+            if(gamePlay.getStatus() == sf::Music::Playing){
+                gamePlay.pause();
+            }
+        }
 
         sf::Event event;
         while(window.pollEvent(event)){
@@ -406,10 +487,10 @@ int main(){
                     if(musicPreference == "On") missileLaunch.play();
                 }
             }
-            else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::G && onWhichScreen == "Menu"){
+            else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::G && onWhichScreen == "Menu" && Over == false){
                 onWhichScreen = "Game"; // move to game screen 
             }
-            else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::M && (onWhichScreen == "Game" || onWhichScreen == "Preference")){
+            else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::M && (onWhichScreen == "Game" || onWhichScreen == "Preference") && Over == false){
                 onWhichScreen = "Menu";
             }
             else if(onWhichScreen == "Menu" && event.type == sf::Event::MouseButtonPressed){
@@ -431,6 +512,7 @@ int main(){
                     if(totalAliens < maxAliens && (sf::Mouse::getPosition(window).x > increaseCount.getPosition().x) && (sf::Mouse::getPosition(window).x < increaseCount.getPosition().x + increaseCount.getSize().x) && (sf::Mouse::getPosition(window).y > increaseCount.getPosition().y) && (sf::Mouse::getPosition(window).y < increaseCount.getPosition().y + increaseCount.getSize().y)){
                         totalAliens += 1;
                         int needMore = 1;
+                        Hp.push_back(hp); // hp for the other alien
                         loadAliens(aliens, alien, needMore);
                         setMovement(aliens, AlienMovement, needMore);
                         decreaseCount.setOutlineColor(sf::Color::Green);
@@ -439,6 +521,7 @@ int main(){
                     }
                     else if(totalAliens > minAliens && (sf::Mouse::getPosition(window).x > decreaseCount.getPosition().x) && (sf::Mouse::getPosition(window).x < decreaseCount.getPosition().x + decreaseCount.getSize().x) && (sf::Mouse::getPosition(window).y > decreaseCount.getPosition().y) && (sf::Mouse::getPosition(window).y < decreaseCount.getPosition().y + decreaseCount.getSize().y)){
                         totalAliens--;
+                        Hp.pop_back(); // removing the last.. (not sure.. chatgpt review it)
                         aliens.pop_back(); // as it will remove the last added alien
                         AlienMovement.pop_back(); // removing movement for the last added alien
                         increaseCount.setOutlineColor(sf::Color::Green);
@@ -459,6 +542,31 @@ int main(){
                     else if((sf::Mouse::getPosition(window).x > backButton.getPosition().x) && (sf::Mouse::getPosition(window).x < backButton.getPosition().x + backButton.getSize().x) && (sf::Mouse::getPosition(window).y > backButton.getPosition().y) && (sf::Mouse::getPosition(window).y < backButton.getPosition().y + backButton.getSize().y)){
                         onWhichScreen = "Menu";
                     }
+                    else if(gameStarted == false &&(sf::Mouse::getPosition(window).x > normalModeBox.getPosition().x) && (sf::Mouse::getPosition(window).x < normalModeBox.getPosition().x + normalModeBox.getSize().x) && (sf::Mouse::getPosition(window).y > normalModeBox.getPosition().y) && (sf::Mouse::getPosition(window).y < normalModeBox.getPosition().y + normalModeBox.getSize().y)){
+                        currMode = "Normal";
+                        hp = 1;
+                        vector<int> tempHp;
+                        fillHp(tempHp, hp, totalAliens);
+                        Hp = tempHp; // to organize game properly.. as player cannot be restricted from choosing
+                        missileY_change = -600.0; // increase missile speed to meet the difficulty
+                        moveShipX = 550.0;
+                        hardModeButton.setOutlineColor(sf::Color::Red);
+                        nightMareButton.setOutlineColor(sf::Color::Red);
+                        normalModeBox.setOutlineColor(sf::Color::Green);
+                    }
+                    else if(gameStarted == false && (sf::Mouse::getPosition(window).x > hardModeButton.getPosition().x) && (sf::Mouse::getPosition(window).x < hardModeButton.getPosition().x + hardModeButton.getSize().x) && (sf::Mouse::getPosition(window).y > hardModeButton.getPosition().y) && (sf::Mouse::getPosition(window).y < hardModeButton.getPosition().y + hardModeButton.getSize().y)){
+                        currMode = "Hard";
+                        hp = 2;
+                        vector<int> tempHp;
+                        fillHp(tempHp, hp, totalAliens);
+                        Hp = tempHp; // to organize game properly.. as player cannot be restricted from choosing                        
+                        missileY_change = -1000.0;
+                        moveShipX = 800.0;
+                        hardModeButton.setOutlineColor(sf::Color::Green);
+                        nightMareButton.setOutlineColor(sf::Color::Red);
+                        normalModeBox.setOutlineColor(sf::Color::Red);
+
+                    }
                 }
             }
         }
@@ -466,7 +574,7 @@ int main(){
         if(onWhichScreen == "Game") moveShip(spaceShip, moveShipX, deltaTime, Over); // it will handle ship movements and bounds
         if(onWhichScreen == "Game") moveAliens(aliens, AlienMovement, deltaTime, Over);
 
-        if(onWhichScreen == "Game") controlMissileStates(missiles, missileY_change, aliens, alien, MissileCollision, spaceShip, deltaTime, score, musicPreference);
+        if(onWhichScreen == "Game") controlMissileStates(missiles, missileY_change, aliens, alien, Hp, hp, MissileCollision, spaceShip, deltaTime, score, musicPreference);
     
         if(Over == true){
             // state = "rest"; // forcefully bring the missile at rest... no need for this statement here as i have made changes in gameOver()
@@ -509,6 +617,12 @@ int main(){
             window.draw(increaseMissileText);
             window.draw(decreaseMissiles);
             window.draw(decreaseMissilesText);
+            window.draw(normalModeBox);
+            window.draw(normalModeText);
+            window.draw(hardModeButton);
+            window.draw(hardModeText);
+            window.draw(nightMareButton);
+            window.draw(nightmareText);
             window.draw(backButton);
             window.draw(back);
         }
