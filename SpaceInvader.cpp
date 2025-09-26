@@ -458,7 +458,7 @@ int main(){
     loadAliens(aliens, alien, totalAliens); // loading aliens
 
     int hp = 1; 
-    vector<int> Hp(totalAliens, hp); // initially no values
+    vector<int> Hp(totalAliens, hp); // initially set for Normal mode
     // gameloop
     while(window.isOpen()){
         if(onWhichScreen == "Game") gameStarted = false; // game has started.. cannot switch modes now
