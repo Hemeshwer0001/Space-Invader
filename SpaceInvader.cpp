@@ -11,6 +11,11 @@ struct Missiles{
     string state = "rest"; // initially at rest
 };
 
+struct Orbs{
+    sf::Sprite setSprite;
+    string state = "rest"; // initially at rest
+};
+
 void moveShip(sf::Sprite& ship, float moveX, float deltaTime, bool Over){
     // here we will make click listener for the spaceship
     if(sf::Keyboard::isKeyPressed(sf::Keyboard::Left) && Over == false){
@@ -49,9 +54,9 @@ void displayAliens(vector<sf::Sprite>& aliens, sf::RenderWindow& window){
     }
 }
 
-void setMovement(vector<sf::Sprite>& aliens, vector<sf::Vector2f>& AlienMovement, int& totalAliens){
+void setMovement(vector<sf::Sprite>& aliens, vector<sf::Vector2f>& AlienMovement, int& totalAliens, float moveX, float moveY){
     for(int i = 0; i<totalAliens; i++){ // setting movements for all aliens
-        AlienMovement.push_back({700.0, 75.0});
+        AlienMovement.push_back({moveX, moveY});
     }
 }
 
@@ -74,10 +79,6 @@ void moveAliens(vector<sf::Sprite>& aliens, vector<sf::Vector2f>& AlienMovement,
         }
         else if(aliens[i].getPosition().y+64 >= 566){
             over = true;
-            for(int i = 0; i<aliens.size(); i++){
-                AlienMovement[i].x = 0;
-                AlienMovement[i].y = 0;
-            }
             break;
         }
     }
@@ -144,9 +145,55 @@ void fillHp(vector<int>& Hp, int& hp, int size){
     }
 }
 
-void gameOver(sf::Text& GameOver, vector<Missiles>& missiles){
+void mapOrbsAndAliens(vector<Orbs>& alienOrbs, Orbs& orb, int& totalAliens){
+    for(int i = 0; i<totalAliens; i++){
+        if(i%2==0) alienOrbs.push_back(orb); // each even indexed alien will launch one orb
+    }
+}
+
+bool spaceShipOrbCollision(sf::Sprite& Orb, sf::Sprite& spaceShip){
+    if(Orb.getGlobalBounds().intersects(spaceShip.getGlobalBounds())){ // they collide
+        return true;
+    }
+    return false;
+}
+
+void launchOrbs(vector<Orbs>& alienOrbs, vector<sf::Sprite>& aliens, sf::Sprite& spaceShip, float orbY_change, float deltaTime, bool& Over){
+    int j = 0; // this will mark index for orbs.. as they are about half as compared to aliens
+    for(int i = 0; i<aliens.size(); i++){
+        if(i%2 == 0){ // even index aliens can launch orbs
+            if(alienOrbs[j].state == "rest"){ // if orb is at rest we will launch it
+                alienOrbs[j].setSprite.setPosition(aliens[i].getPosition().x, aliens[i].getPosition().y); // giving orb the position of the alien
+                alienOrbs[j].state = "fire"; // ready to be fired
+            }
+            else{ // orb is ready to be fired
+                alienOrbs[j].setSprite.move(0, orbY_change*deltaTime);
+                if(alienOrbs[j].setSprite.getPosition().y > 560){ // orb goes beyond spaceShip.. no danger
+                    alienOrbs[j].state = "rest";
+                }
+                else if(spaceShipOrbCollision(alienOrbs[j].setSprite, spaceShip)){ // if orb collides with the spaceShip game ends
+                    Over = true;
+                    orbY_change = 0.0;
+                }
+            }
+            j++; // we passed one orb
+        }
+    }
+}
+
+void displayOrbs(vector<Orbs> alienOrbs, sf::RenderWindow& window){
+    for(int i = 0; i<alienOrbs.size(); i++){
+        window.draw(alienOrbs[i].setSprite);
+    }
+}
+
+void gameOver(sf::Text& GameOver, vector<Missiles>& missiles, vector<sf::Vector2f>& AlienMovement, vector<sf::Sprite>& aliens){
     for(int i = 0; i<missiles.size(); i++){
         missiles[i].state = "rest";
+    }
+    for(int i = 0; i<aliens.size(); i++){
+        AlienMovement[i].x = 0;
+        AlienMovement[i].y = 0;
     }
     GameOver.setCharacterSize(60);
     GameOver.setFillColor(sf::Color::Magenta);
@@ -177,7 +224,7 @@ int main(){
 
     // creating a font
     sf::Font font;
-    font.loadFromFile("FreeRoyalty.ttf");
+    font.loadFromFile("Assets/FreeRoyalty.ttf");
     sf::Text GameOver;
     GameOver.setFont(font);
 
@@ -229,7 +276,7 @@ int main(){
     PreferenceText.setString("Preference");
 
     // Below For Our Preference Screen
-    // in this screen we will allow user to choose the number of invaders and number of missiles he can fire
+    // in this screen we will allow user to choose the number of invaders and number of missiles he can fire and select modes
 
     // button for Number of invaders
     sf::RectangleShape invaderChoice;
@@ -371,27 +418,26 @@ int main(){
     nightmareText.setString("NightMare");
 
     string currMode = "Normal"; // other modes are Hard... NightMare (Modes can be changed only before startGame)
-    bool gameStarted = false; // initially we are in Menu.. not StartGame
 
+    
     // Below: FOR GAME SCREEN
 
     // Creating Sound that plays until the game runs
-    
     sf::Music gamePlay;
-    gamePlay.openFromFile("GamePlayAudio.wav");
+    gamePlay.openFromFile("Assets/GamePlayAudio.wav");
     gamePlay.setLoop(true);
     gamePlay.setVolume(70);
     
 
     // creating sound for Missile Launch
     sf::SoundBuffer missileBuffer;
-    missileBuffer.loadFromFile("missile.wav");
+    missileBuffer.loadFromFile("Assets/missile.wav");
     sf::Sound missileLaunch;
     missileLaunch.setBuffer(missileBuffer);
 
     // Creating sound for Missile and Alien Collision
     sf::SoundBuffer collisionBuffer;
-    collisionBuffer.loadFromFile("Explosion.wav");
+    collisionBuffer.loadFromFile("Assets/Explosion.wav");
     sf::Sound MissileCollision;
     MissileCollision.setBuffer(collisionBuffer);
 
@@ -415,22 +461,22 @@ int main(){
 
     // Loading BackGround
     sf::Texture bgTexture;
-    bgTexture.loadFromFile("Background.png");
+    bgTexture.loadFromFile("Assets/Background.png");
     sf::Sprite backGround;
     backGround.setTexture(bgTexture);
 
     // creating a spaceShip
     sf::Texture shipTexture;
-    shipTexture.loadFromFile("SpaceShip.png");
+    shipTexture.loadFromFile("Assets/SpaceShip.png");
     sf::Sprite spaceShip;
     spaceShip.setTexture(shipTexture);
     spaceShip.setTextureRect(sf::IntRect(64, 0, 64, 64));
     spaceShip.setPosition(window.getSize().x/2-32, 536);
-    float moveShipX = 550.0, moveShipY = 0; 
+    float moveShipX = 600.0, moveShipY = 0; 
 
     // creating aliens
     sf::Texture alienTexture;
-    alienTexture.loadFromFile("plunderReaper.png");
+    alienTexture.loadFromFile("Assets/plunderReaper.png");
     sf::Sprite alien;
     alien.setTexture(alienTexture);
     vector<sf::Sprite> aliens; // will store aliens in a vector
@@ -438,13 +484,15 @@ int main(){
     int minAliens = 1;
     int maxAliens = 20;
     vector<sf::Vector2f> AlienMovement; // will take note of each aliens movement.
+    float moveAlienX = 700.0;
+    float moveAlienY = 75.0;
 
     // time to throw bombs (missile)
     int totalMissiles = 2;
     int minMissiles = 1;
     int maxMissiles = 7;
     sf::Texture missileTexture;
-    missileTexture.loadFromFile("missile00.png");
+    missileTexture.loadFromFile("Assets/missile00.png");
     sf::Sprite Missile;
     Missile.setTexture(missileTexture);
     Missiles missile; // one missile.. will be pushed in missilesy
@@ -454,14 +502,24 @@ int main(){
     float missileY_change = -600.0;
 
     // setting movement for all aliens
-    setMovement(aliens, AlienMovement, totalAliens);
+    setMovement(aliens, AlienMovement, totalAliens, moveAlienX, moveAlienY);
     loadAliens(aliens, alien, totalAliens); // loading aliens
+
+    // Missiles for aliens attacks 
+    sf::Texture orbTexture;
+    orbTexture.loadFromFile("Assets/Orb.png");
+    sf::Sprite orb;
+    orb.setTexture(orbTexture);
+    orb.setTextureRect(sf::IntRect(293, 323, 20, 20));
+    Orbs Orb;
+    Orb.setSprite = orb; 
+    vector<Orbs> AlienOrbs; // this will be utilized only for NightMare
+    float orbY_change = 350.0; // orbs moving speed
 
     int hp = 1; 
     vector<int> Hp(totalAliens, hp); // initially set for Normal mode
     // gameloop
     while(window.isOpen()){
-        if(onWhichScreen == "Game") gameStarted = false; // game has started.. cannot switch modes now
         float deltaTime = clock.restart().asSeconds();
         invaderText.setString("Invader Count "+to_string(totalAliens));
         missileCountText.setString("Missile Count "+to_string(totalMissiles));
@@ -511,16 +569,26 @@ int main(){
                 if(event.mouseButton.button == sf::Mouse::Left){
                     if(totalAliens < maxAliens && (sf::Mouse::getPosition(window).x > increaseCount.getPosition().x) && (sf::Mouse::getPosition(window).x < increaseCount.getPosition().x + increaseCount.getSize().x) && (sf::Mouse::getPosition(window).y > increaseCount.getPosition().y) && (sf::Mouse::getPosition(window).y < increaseCount.getPosition().y + increaseCount.getSize().y)){
                         totalAliens += 1;
+                        if(currMode == "NightMare"){
+                            vector<Orbs> temp;
+                            mapOrbsAndAliens(temp, Orb, totalAliens);
+                            AlienOrbs = temp; // resetting the number of orbs...
+                        }
                         int needMore = 1;
                         Hp.push_back(hp); // hp for the other alien
                         loadAliens(aliens, alien, needMore);
-                        setMovement(aliens, AlienMovement, needMore);
+                        setMovement(aliens, AlienMovement, needMore, moveAlienX, moveAlienY);
                         decreaseCount.setOutlineColor(sf::Color::Green);
                         if(totalAliens == maxAliens) increaseCount.setOutlineColor(sf::Color::Red);
                         
                     }
                     else if(totalAliens > minAliens && (sf::Mouse::getPosition(window).x > decreaseCount.getPosition().x) && (sf::Mouse::getPosition(window).x < decreaseCount.getPosition().x + decreaseCount.getSize().x) && (sf::Mouse::getPosition(window).y > decreaseCount.getPosition().y) && (sf::Mouse::getPosition(window).y < decreaseCount.getPosition().y + decreaseCount.getSize().y)){
-                        totalAliens--;
+                        totalAliens -= 1;
+                        if(currMode == "NightMare"){
+                            vector<Orbs> temp;
+                            mapOrbsAndAliens(temp, Orb, totalAliens);
+                            AlienOrbs = temp; // resetting the number of orbs...
+                        }
                         Hp.pop_back(); // removing the last.. (not sure.. chatgpt review it)
                         aliens.pop_back(); // as it will remove the last added alien
                         AlienMovement.pop_back(); // removing movement for the last added alien
@@ -542,30 +610,60 @@ int main(){
                     else if((sf::Mouse::getPosition(window).x > backButton.getPosition().x) && (sf::Mouse::getPosition(window).x < backButton.getPosition().x + backButton.getSize().x) && (sf::Mouse::getPosition(window).y > backButton.getPosition().y) && (sf::Mouse::getPosition(window).y < backButton.getPosition().y + backButton.getSize().y)){
                         onWhichScreen = "Menu";
                     }
-                    else if(gameStarted == false &&(sf::Mouse::getPosition(window).x > normalModeBox.getPosition().x) && (sf::Mouse::getPosition(window).x < normalModeBox.getPosition().x + normalModeBox.getSize().x) && (sf::Mouse::getPosition(window).y > normalModeBox.getPosition().y) && (sf::Mouse::getPosition(window).y < normalModeBox.getPosition().y + normalModeBox.getSize().y)){
+                    else if((sf::Mouse::getPosition(window).x > normalModeBox.getPosition().x) && (sf::Mouse::getPosition(window).x < normalModeBox.getPosition().x + normalModeBox.getSize().x) && (sf::Mouse::getPosition(window).y > normalModeBox.getPosition().y) && (sf::Mouse::getPosition(window).y < normalModeBox.getPosition().y + normalModeBox.getSize().y)){
                         currMode = "Normal";
+                        if(AlienOrbs.size()!=0) AlienOrbs.clear();
                         hp = 1;
                         vector<int> tempHp;
                         fillHp(tempHp, hp, totalAliens);
                         Hp = tempHp; // to organize game properly.. as player cannot be restricted from choosing
+                        moveAlienX = 700.0;
+                        moveAlienY = 75.0;
+                        vector<sf::Vector2f> tempMovement;
+                        setMovement(aliens, tempMovement, totalAliens, moveAlienX, moveAlienY);
+                        AlienMovement = tempMovement;
                         missileY_change = -600.0; // increase missile speed to meet the difficulty
-                        moveShipX = 550.0;
+                        moveShipX = 600.0;
                         hardModeButton.setOutlineColor(sf::Color::Red);
                         nightMareButton.setOutlineColor(sf::Color::Red);
                         normalModeBox.setOutlineColor(sf::Color::Green);
                     }
-                    else if(gameStarted == false && (sf::Mouse::getPosition(window).x > hardModeButton.getPosition().x) && (sf::Mouse::getPosition(window).x < hardModeButton.getPosition().x + hardModeButton.getSize().x) && (sf::Mouse::getPosition(window).y > hardModeButton.getPosition().y) && (sf::Mouse::getPosition(window).y < hardModeButton.getPosition().y + hardModeButton.getSize().y)){
+                    else if((sf::Mouse::getPosition(window).x > hardModeButton.getPosition().x) && (sf::Mouse::getPosition(window).x < hardModeButton.getPosition().x + hardModeButton.getSize().x) && (sf::Mouse::getPosition(window).y > hardModeButton.getPosition().y) && (sf::Mouse::getPosition(window).y < hardModeButton.getPosition().y + hardModeButton.getSize().y)){
                         currMode = "Hard";
+                        if(AlienOrbs.size()!=0) AlienOrbs.clear();
                         hp = 2;
                         vector<int> tempHp;
                         fillHp(tempHp, hp, totalAliens);
                         Hp = tempHp; // to organize game properly.. as player cannot be restricted from choosing                        
+                        moveAlienX = 700.0;
+                        moveAlienY = 75.0;
+                        vector<sf::Vector2f> tempMovement;
+                        setMovement(aliens, tempMovement, totalAliens, moveAlienX, moveAlienY);
+                        AlienMovement = tempMovement;
                         missileY_change = -1000.0;
                         moveShipX = 800.0;
                         hardModeButton.setOutlineColor(sf::Color::Green);
                         nightMareButton.setOutlineColor(sf::Color::Red);
                         normalModeBox.setOutlineColor(sf::Color::Red);
 
+                    }
+                    else if((sf::Mouse::getPosition(window).x > nightMareButton.getPosition().x) && (sf::Mouse::getPosition(window).x < nightMareButton.getPosition().x + nightMareButton.getSize().x) && (sf::Mouse::getPosition(window).y > nightMareButton.getPosition().y) && (sf::Mouse::getPosition(window).y < nightMareButton.getPosition().y + nightMareButton.getSize().y)){
+                        currMode = "NightMare";
+                        hp = 1;
+                        vector<int> tempHp;
+                        fillHp(tempHp, hp, totalAliens);
+                        moveAlienX = 500.0;
+                        moveAlienY = 40.0;
+                        vector<sf::Vector2f> tempMovement;
+                        setMovement(aliens, tempMovement, totalAliens, moveAlienX, moveAlienY);
+                        AlienMovement = tempMovement;
+                        Hp = tempHp; // to organize game properly.. as player cannot be restricted from choosing                        
+                        missileY_change = -1000.0;
+                        moveShipX = 800.0;
+                        mapOrbsAndAliens(AlienOrbs, Orb, totalAliens); // totalAliens/2 will fire orbs (every even indexed alien)
+                        hardModeButton.setOutlineColor(sf::Color::Red);
+                        nightMareButton.setOutlineColor(sf::Color::Green);
+                        normalModeBox.setOutlineColor(sf::Color::Red);
                     }
                 }
             }
@@ -575,10 +673,10 @@ int main(){
         if(onWhichScreen == "Game") moveAliens(aliens, AlienMovement, deltaTime, Over);
 
         if(onWhichScreen == "Game") controlMissileStates(missiles, missileY_change, aliens, alien, Hp, hp, MissileCollision, spaceShip, deltaTime, score, musicPreference);
-    
+        if(onWhichScreen == "Game" && currMode == "NightMare" && Over == false) launchOrbs(AlienOrbs, aliens, spaceShip, orbY_change, deltaTime, Over);
         if(Over == true){
             // state = "rest"; // forcefully bring the missile at rest... no need for this statement here as i have made changes in gameOver()
-            gameOver(GameOver, missiles);
+            gameOver(GameOver, missiles, AlienMovement, aliens);
         }
 
         if(score > highSco) highSco = score;
@@ -595,6 +693,7 @@ int main(){
             window.draw(GameOver);
             window.draw(Score);
             window.draw(HighScore);
+            displayOrbs(AlienOrbs, window);
         }
         else if(onWhichScreen == "Menu"){
             window.draw(startGame);
