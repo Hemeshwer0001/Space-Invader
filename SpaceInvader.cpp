@@ -16,6 +16,11 @@ struct Orbs{
     string state = "rest"; // initially at rest
 };
 
+struct BossFires{
+    sf::Sprite setSprite; // for normal attack in group of 3
+    string state = "rest";
+};
+
 void moveShip(sf::Sprite& ship, float moveX, float deltaTime, bool Over){
     // here we will make click listener for the spaceship
     if(sf::Keyboard::isKeyPressed(sf::Keyboard::Left) && Over == false){
@@ -46,6 +51,19 @@ void loadAliens(vector<sf::Sprite>&aliens, sf::Sprite& alien, int& totalAliens){
         alien.setPosition(AlienX, AlienY);
         aliens.push_back(alien);
     }
+}
+
+void randomPos(sf::Sprite& bossSprite, float& bossX_change){
+    random_device rd;
+    mt19937 gen(rd());
+
+    uniform_int_distribution <> X(0, 560);
+    int Xpos = X(gen);
+    bossSprite.setPosition(Xpos, 0);
+
+    uniform_int_distribution <> Z(-1, 1);
+    int value = Z(gen);
+    (value > 0)? bossX_change *= 1: bossX_change *= -1;
 }
 
 void displayAliens(vector<sf::Sprite>& aliens, sf::RenderWindow& window){
@@ -120,7 +138,20 @@ bool canLaunch(vector<Missiles>& missiles){
     return false;
 }
 
-void controlMissileStates(vector<Missiles>& missiles, float& missileY_change, vector<sf::Sprite>& aliens, sf:: Sprite& alien, vector<int>& Hp, int hp, sf::Sound& MissileCollision, sf::Sprite& spaceShip, float& deltaTime, int& score, string& musicPreference){
+bool BossMissileCollision(sf::Sprite& missile, sf::Sprite& boss, string& state, sf::Sound& missileCollision, string& musicPreference){
+    if(missile.getGlobalBounds().intersects(boss.getGlobalBounds())){
+        if(musicPreference == "On"){
+            missileCollision.setVolume(30);
+            missileCollision.play();
+        }
+        state = "rest"; // missile hit.. so, bring it at rest
+        missile.setPosition(-100, -100); // move it out of the screen
+        return true; // collision occured
+    }
+    return false;
+}
+
+void controlMissileStates(vector<Missiles>& missiles, float& missileY_change, vector<sf::Sprite>& aliens, sf:: Sprite& alien, vector<int>& Hp, int hp, sf::Sound& MissileCollision, sf::Sprite& spaceShip, float& deltaTime, int& score, string& musicPreference, sf::Sprite& boss, int& BossHp, float bossX_change, string& currMode, bool& Win, bool& Over){
     for(int i = 0; i<missiles.size(); i++){
         if(missiles[i].state == "rest") missiles[i].setSprite.setPosition(spaceShip.getPosition().x+20, spaceShip.getPosition().y+20);
         else{ // the missile is launched
@@ -134,6 +165,15 @@ void controlMissileStates(vector<Missiles>& missiles, float& missileY_change, ve
                 loadAliens(aliens, alien, needAlien); // it will bring back the ailens that we killed
                 Hp.push_back(hp); // we are getting a new alien as prev was removed... so, we need new Hp for the new alien
                 score++;
+            }
+            else if(currMode == "Boss" && BossMissileCollision(missiles[i].setSprite, boss, missiles[i].state, MissileCollision, musicPreference)){
+                BossHp -= 1; // boss was hit by the missile
+                randomPos(boss, bossX_change);
+                if(BossHp == 0){
+                    Win = true;
+                    Over = true;
+                    break; 
+                }
             }
         }
     }
@@ -187,6 +227,67 @@ void displayOrbs(vector<Orbs> alienOrbs, sf::RenderWindow& window){
     }
 }
 
+void moveBoss(sf::Sprite& bossSprite, float& bossX_change, float& deltaTime){
+    bossSprite.move(bossX_change*deltaTime, 0);
+    if(bossSprite.getPosition().x < 0){
+        bossSprite.setPosition(0, 0);
+        bossX_change *= -1;
+    }
+    else if(bossSprite.getPosition().x + 240 >= 800){
+        bossSprite.setPosition(560, 0);
+        bossX_change *= -1;
+    }
+}
+
+bool allAtRest(vector<BossFires> Stars){
+    for(int i = 0; i<Stars.size(); i++){
+        if(Stars[i].state == "fire") return false; // one star is still moving
+    }
+    return true;
+}
+
+void moveStars(vector<BossFires>& Stars, sf::Sprite& spaceShip, float& starsY_change, float& deltaTime, bool& Over){
+    for(int i = 0; i<Stars.size(); i++){ // first move all the sprites
+        if(Stars[i].state == "fire"){
+            Stars[i].setSprite.move(0, starsY_change*deltaTime);
+        }
+    }
+
+    // now check for bounds
+    for(int i = 0; i<Stars.size(); i++){
+        if(Stars[i].setSprite.getPosition().y > 600){
+            Stars[i].state = "rest";
+            Stars[i].setSprite.setPosition(-100, -100); // move out of the screen
+        }
+        else if(Stars[i].setSprite.getGlobalBounds().intersects(spaceShip.getGlobalBounds())){ // stars and spaceship collided
+            Over = true;
+            starsY_change = 0.0; // stop moving
+        }
+    }
+}
+
+void lauchStars(sf::Sprite& bossSprite, vector<BossFires>& Stars, sf::Sprite& spaceShip, int& rounds, float& starsY_change, float& deltaTime, bool& Over){
+    int Xpos = bossSprite.getPosition().x;
+    if(rounds = 0) rounds = 2; // reset the value of rounds to be used next time
+    else{  // rounds == 1 or 2 .. we can fire more rounds
+        if(allAtRest(Stars)){ // we fire all together
+            for(int i = 0; i<Stars.size(); i++){
+                Stars[i].setSprite.setPosition(Xpos, 220);
+                Stars[i].state = "fire"; // launch the star
+                Xpos += 120; // change the Xpos for the next star
+            }
+            rounds -= 1; // one more round of stars fired
+        }
+        moveStars(Stars, spaceShip, starsY_change, deltaTime, Over);
+    }
+}
+
+void displayStars(vector<BossFires>& Stars, sf::RenderWindow& window){
+    for(int i = 0; i<Stars.size(); i++){
+        window.draw(Stars[i].setSprite);
+    }
+}
+
 void gameOver(sf::Text& GameOver, vector<Missiles>& missiles, vector<sf::Vector2f>& AlienMovement, vector<sf::Sprite>& aliens){
     for(int i = 0; i<missiles.size(); i++){
         missiles[i].state = "rest";
@@ -200,6 +301,21 @@ void gameOver(sf::Text& GameOver, vector<Missiles>& missiles, vector<sf::Vector2
     GameOver.Bold;
     GameOver.setPosition(230, 300);
     GameOver.setString("Game Over!");
+}
+
+void Victory(sf::Text& GameWon, vector<Missiles>& missiles, vector<sf::Vector2f>& AlienMovement, vector<sf::Sprite>& aliens){
+    for(int i = 0; i<missiles.size(); i++){
+        missiles[i].state = "rest";
+    }
+    for(int i = 0; i<aliens.size(); i++){
+        AlienMovement[i].x = 0;
+        AlienMovement[i].y = 0;
+    }
+    GameWon.setCharacterSize(60);
+    GameWon.setFillColor(sf::Color::Magenta);
+    GameWon.Bold;
+    GameWon.setPosition(150, 300);
+    GameWon.setString("Congratulations!\nYou've Won");
 }
 
 
@@ -221,12 +337,16 @@ int main(){
     window.setKeyRepeatEnabled(false);
     sf::Clock clock;
     bool Over = false;
+    bool Win = false;
+    bool gameStarted = false;
 
     // creating a font
     sf::Font font;
     font.loadFromFile("Assets/FreeRoyalty.ttf");
     sf::Text GameOver;
     GameOver.setFont(font);
+    sf::Text gameWon;
+    gameWon.setFont(font);
 
     string onWhichScreen = "Menu"; // initially we will be in the menu screen
     // Different screens in this game will be : Menu ... Preference ... Game
@@ -472,7 +592,7 @@ int main(){
     spaceShip.setTexture(shipTexture);
     spaceShip.setTextureRect(sf::IntRect(64, 0, 64, 64));
     spaceShip.setPosition(window.getSize().x/2-32, 536);
-    float moveShipX = 600.0, moveShipY = 0; 
+    float moveShipX = 600.0, moveShipY = 0;
 
     // creating aliens
     sf::Texture alienTexture;
@@ -488,7 +608,7 @@ int main(){
     float moveAlienY = 75.0;
 
     // time to throw bombs (missile)
-    int totalMissiles = 2;
+    int totalMissiles = 7;
     int minMissiles = 1;
     int maxMissiles = 7;
     sf::Texture missileTexture;
@@ -518,8 +638,52 @@ int main(){
 
     int hp = 1; 
     vector<int> Hp(totalAliens, hp); // initially set for Normal mode
+
+    // Final Boss .. for all modes there will be 1 boss fight..
+    sf::Texture bossTexture; 
+    bossTexture.loadFromFile("Assets/finalBoss.png");
+    sf::Sprite bossSprite; // boss is off the screen until the time comes
+    bossSprite.setTexture(bossTexture);
+    int bossWaitScore = 40; // for normal mode(default mode)
+    bool canCome = false; // not yet ready for entry
+    float bossX_change = 0.0; // boss is slow 
+    int BossHp = 40;
+
+    sf::Text hpleft;
+    hpleft.setCharacterSize(30);
+    hpleft.setFont(font);
+    hpleft.setFillColor(sf::Color::Yellow);
+
+    // Boss's magic Stars
+    sf::Texture bossStarTexture;
+    bossStarTexture.loadFromFile("Assets/bossStar.png");
+    sf::Sprite bossStar;
+    bossStar.setTexture(bossStarTexture);
+    BossFires star;
+    star.setSprite = bossStar;
+    vector<BossFires> Stars(3, star); // boss will fire 3 missiles at a time
+    int rounds = 2; // after 2 fire rounds something special will occur
+    float starsY_change = 400.0; 
+
+    // Boss Entry text
+    sf::Text bossEntry;
+    bossEntry.setFont(font);
+    bossEntry.setCharacterSize(60);
+    bossEntry.setFillColor(sf::Color::Green);
+    bossEntry.setPosition(250, 250);
+    bossEntry.setString("Boss Fight!");
+
+    sf::Clock bossClock;
+    bool clockStarted = false;
+
+    bool moveRandom = false;
+
     // gameloop
     while(window.isOpen()){
+        if(onWhichScreen == "Game") gameStarted = true; // cannot change the mode anymore
+        
+        if(score >= bossWaitScore) currMode = "Boss"; // time for the boss to arrive
+
         float deltaTime = clock.restart().asSeconds();
         invaderText.setString("Invader Count "+to_string(totalAliens));
         missileCountText.setString("Missile Count "+to_string(totalMissiles));
@@ -610,8 +774,9 @@ int main(){
                     else if((sf::Mouse::getPosition(window).x > backButton.getPosition().x) && (sf::Mouse::getPosition(window).x < backButton.getPosition().x + backButton.getSize().x) && (sf::Mouse::getPosition(window).y > backButton.getPosition().y) && (sf::Mouse::getPosition(window).y < backButton.getPosition().y + backButton.getSize().y)){
                         onWhichScreen = "Menu";
                     }
-                    else if((sf::Mouse::getPosition(window).x > normalModeBox.getPosition().x) && (sf::Mouse::getPosition(window).x < normalModeBox.getPosition().x + normalModeBox.getSize().x) && (sf::Mouse::getPosition(window).y > normalModeBox.getPosition().y) && (sf::Mouse::getPosition(window).y < normalModeBox.getPosition().y + normalModeBox.getSize().y)){
+                    else if(gameStarted == false && (sf::Mouse::getPosition(window).x > normalModeBox.getPosition().x) && (sf::Mouse::getPosition(window).x < normalModeBox.getPosition().x + normalModeBox.getSize().x) && (sf::Mouse::getPosition(window).y > normalModeBox.getPosition().y) && (sf::Mouse::getPosition(window).y < normalModeBox.getPosition().y + normalModeBox.getSize().y)){
                         currMode = "Normal";
+                        bossWaitScore = 40;
                         if(AlienOrbs.size()!=0) AlienOrbs.clear();
                         hp = 1;
                         vector<int> tempHp;
@@ -628,8 +793,9 @@ int main(){
                         nightMareButton.setOutlineColor(sf::Color::Red);
                         normalModeBox.setOutlineColor(sf::Color::Green);
                     }
-                    else if((sf::Mouse::getPosition(window).x > hardModeButton.getPosition().x) && (sf::Mouse::getPosition(window).x < hardModeButton.getPosition().x + hardModeButton.getSize().x) && (sf::Mouse::getPosition(window).y > hardModeButton.getPosition().y) && (sf::Mouse::getPosition(window).y < hardModeButton.getPosition().y + hardModeButton.getSize().y)){
+                    else if(gameStarted == false && (sf::Mouse::getPosition(window).x > hardModeButton.getPosition().x) && (sf::Mouse::getPosition(window).x < hardModeButton.getPosition().x + hardModeButton.getSize().x) && (sf::Mouse::getPosition(window).y > hardModeButton.getPosition().y) && (sf::Mouse::getPosition(window).y < hardModeButton.getPosition().y + hardModeButton.getSize().y)){
                         currMode = "Hard";
+                        bossWaitScore = 20;
                         if(AlienOrbs.size()!=0) AlienOrbs.clear();
                         hp = 2;
                         vector<int> tempHp;
@@ -647,8 +813,9 @@ int main(){
                         normalModeBox.setOutlineColor(sf::Color::Red);
 
                     }
-                    else if((sf::Mouse::getPosition(window).x > nightMareButton.getPosition().x) && (sf::Mouse::getPosition(window).x < nightMareButton.getPosition().x + nightMareButton.getSize().x) && (sf::Mouse::getPosition(window).y > nightMareButton.getPosition().y) && (sf::Mouse::getPosition(window).y < nightMareButton.getPosition().y + nightMareButton.getSize().y)){
+                    else if(gameStarted == false && (sf::Mouse::getPosition(window).x > nightMareButton.getPosition().x) && (sf::Mouse::getPosition(window).x < nightMareButton.getPosition().x + nightMareButton.getSize().x) && (sf::Mouse::getPosition(window).y > nightMareButton.getPosition().y) && (sf::Mouse::getPosition(window).y < nightMareButton.getPosition().y + nightMareButton.getSize().y)){
                         currMode = "NightMare";
+                        bossWaitScore = 10;
                         hp = 1;
                         vector<int> tempHp;
                         fillHp(tempHp, hp, totalAliens);
@@ -672,11 +839,48 @@ int main(){
         if(onWhichScreen == "Game") moveShip(spaceShip, moveShipX, deltaTime, Over); // it will handle ship movements and bounds
         if(onWhichScreen == "Game") moveAliens(aliens, AlienMovement, deltaTime, Over);
 
-        if(onWhichScreen == "Game") controlMissileStates(missiles, missileY_change, aliens, alien, Hp, hp, MissileCollision, spaceShip, deltaTime, score, musicPreference);
+        if(onWhichScreen == "Game") controlMissileStates(missiles, missileY_change, aliens, alien, Hp, hp, MissileCollision, spaceShip, deltaTime, score, musicPreference, bossSprite, BossHp, bossX_change, currMode, Win, Over);
         if(onWhichScreen == "Game" && currMode == "NightMare" && Over == false) launchOrbs(AlienOrbs, aliens, spaceShip, orbY_change, deltaTime, Over);
-        if(Over == true){
+        
+        hpleft.setPosition(bossSprite.getPosition().x+100, bossSprite.getPosition().y+312);
+        hpleft.setString("Hp : "+to_string(BossHp));
+
+        if(currMode == "Boss" && canCome == false){ // delay before bringing the boss in play
+            bossSprite.setPosition(window.getSize().x/2 - 261/2, 0); // bring the boss onto the screen
+            aliens.clear(); // removing all the aliens
+            missileY_change = 0.0;
+            moveShipX = 0.0;
+            if(clockStarted == false){
+                bossClock.restart();
+                clockStarted = true;
+            }
+            if(bossClock.getElapsedTime().asSeconds() >= 3.0){
+                canCome = true;
+                bossX_change = 300.0;
+                missileY_change = -600;
+                moveShipX = 600.0;
+            }
+        }
+
+        if(BossHp <= 20){
+            bossSprite.setColor(sf::Color::Red);
+            starsY_change = 600.0;
+            moveShipX = 700.0;
+        }
+
+        if(currMode == "Boss" && canCome == true){ // boss is in play now
+            moveBoss(bossSprite, bossX_change, deltaTime);
+            lauchStars(bossSprite, Stars, spaceShip, rounds, starsY_change, deltaTime, Over);
+        }
+        
+        if(Over == true && Win == false){ // we lost
             // state = "rest"; // forcefully bring the missile at rest... no need for this statement here as i have made changes in gameOver()
             gameOver(GameOver, missiles, AlienMovement, aliens);
+            bossX_change = 0.0;
+        }
+        else if(Over == true && Win == true){
+            Victory(gameWon, missiles, AlienMovement, aliens);
+            bossX_change = 0.0;
         }
 
         if(score > highSco) highSco = score;
@@ -690,10 +894,19 @@ int main(){
             displayMissiles(missiles, window);
             window.draw(spaceShip);
             displayAliens(aliens, window);
-            window.draw(GameOver);
             window.draw(Score);
             window.draw(HighScore);
             displayOrbs(AlienOrbs, window);
+            if(currMode == "Boss" && canCome == false){
+                window.draw(bossEntry);
+            }
+            if(currMode == "Boss" && canCome == true && Over == false){
+                displayStars(Stars, window);
+                if(Over == false) window.draw(hpleft);
+            }
+            if(currMode == "Boss" && Over == false) window.draw(bossSprite);
+            window.draw(GameOver);
+            window.draw(gameWon);
         }
         else if(onWhichScreen == "Menu"){
             window.draw(startGame);
