@@ -266,20 +266,16 @@ void moveStars(vector<BossFires>& Stars, sf::Sprite& spaceShip, float& starsY_ch
     }
 }
 
-void lauchStars(sf::Sprite& bossSprite, vector<BossFires>& Stars, sf::Sprite& spaceShip, int& rounds, float& starsY_change, float& deltaTime, bool& Over){
+void lauchStars(sf::Sprite& bossSprite, vector<BossFires>& Stars, sf::Sprite& spaceShip, float& starsY_change, float& deltaTime, bool& Over){
     int Xpos = bossSprite.getPosition().x;
-    if(rounds = 0) rounds = 2; // reset the value of rounds to be used next time
-    else{  // rounds == 1 or 2 .. we can fire more rounds
-        if(allAtRest(Stars)){ // we fire all together
-            for(int i = 0; i<Stars.size(); i++){
-                Stars[i].setSprite.setPosition(Xpos, 220);
-                Stars[i].state = "fire"; // launch the star
-                Xpos += 120; // change the Xpos for the next star
-            }
-            rounds -= 1; // one more round of stars fired
+    if(allAtRest(Stars)){ // we fire all together
+        for(int i = 0; i<Stars.size(); i++){
+            Stars[i].setSprite.setPosition(Xpos, 220);
+            Stars[i].state = "fire"; // launch the star
+            Xpos += 120; // change the Xpos for the next star
         }
-        moveStars(Stars, spaceShip, starsY_change, deltaTime, Over);
     }
+    moveStars(Stars, spaceShip, starsY_change, deltaTime, Over);
 }
 
 void displayStars(vector<BossFires>& Stars, sf::RenderWindow& window){
@@ -644,10 +640,11 @@ int main(){
     bossTexture.loadFromFile("Assets/finalBoss.png");
     sf::Sprite bossSprite; // boss is off the screen until the time comes
     bossSprite.setTexture(bossTexture);
+    bossSprite.setColor(sf::Color::Red);
     int bossWaitScore = 40; // for normal mode(default mode)
     bool canCome = false; // not yet ready for entry
     float bossX_change = 0.0; // boss is slow 
-    int BossHp = 40;
+    int BossHp = 30; // more than enough
 
     sf::Text hpleft;
     hpleft.setCharacterSize(30);
@@ -662,7 +659,6 @@ int main(){
     BossFires star;
     star.setSprite = bossStar;
     vector<BossFires> Stars(3, star); // boss will fire 3 missiles at a time
-    int rounds = 2; // after 2 fire rounds something special will occur
     float starsY_change = 400.0; 
 
     // Boss Entry text
@@ -845,9 +841,10 @@ int main(){
         hpleft.setPosition(bossSprite.getPosition().x+100, bossSprite.getPosition().y+312);
         hpleft.setString("Hp : "+to_string(BossHp));
 
-        if(currMode == "Boss" && canCome == false){ // delay before bringing the boss in play
+        if(onWhichScreen == "Game" && currMode == "Boss" && canCome == false){ // delay before bringing the boss in play
             bossSprite.setPosition(window.getSize().x/2 - 261/2, 0); // bring the boss onto the screen
             aliens.clear(); // removing all the aliens
+            AlienOrbs.clear();
             missileY_change = 0.0;
             moveShipX = 0.0;
             if(clockStarted == false){
@@ -862,15 +859,15 @@ int main(){
             }
         }
 
-        if(BossHp <= 20){
-            bossSprite.setColor(sf::Color::Red);
+        if(onWhichScreen == "Game" && BossHp <= 10){
+            bossSprite.setColor(sf::Color::Green);
             starsY_change = 600.0;
             moveShipX = 700.0;
         }
 
-        if(currMode == "Boss" && canCome == true){ // boss is in play now
+        if(onWhichScreen == "Game" && currMode == "Boss" && canCome == true){ // boss is in play now
             moveBoss(bossSprite, bossX_change, deltaTime);
-            lauchStars(bossSprite, Stars, spaceShip, rounds, starsY_change, deltaTime, Over);
+            lauchStars(bossSprite, Stars, spaceShip, starsY_change, deltaTime, Over);
         }
         
         if(Over == true && Win == false){ // we lost
